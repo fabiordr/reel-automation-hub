@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { BarChart3, TrendingUp, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,7 +33,9 @@ const Analytics = () => {
         if (video.views) {
           Object.entries(video.views).forEach(([platform, views]) => {
             if (platforms[platform]) {
-              platforms[platform].views += views;
+              // Corrigindo a tipagem - garantir que views seja um número
+              const viewCount = typeof views === 'number' ? views : 0;
+              platforms[platform].views += viewCount;
             }
           });
         }
@@ -71,7 +72,12 @@ const Analytics = () => {
       
       // Encontrar vídeos com desempenho baixo
       const lowPerformanceVideo = videos.find(v => {
-        const totalViews = Object.values(v.views || {}).reduce((sum, views) => sum + views, 0);
+        // Corrigindo a tipagem - garantir soma de visualizações como número
+        const totalViews = Object.values(v.views || {}).reduce((sum: number, views): number => {
+          const viewCount = typeof views === 'number' ? views : 0;
+          return sum + viewCount;
+        }, 0);
+        
         return totalViews < 100 && v.status === 'published';
       });
       

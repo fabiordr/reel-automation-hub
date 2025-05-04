@@ -26,7 +26,8 @@ const PipelineVideoCard = ({ video, onRetry }: {
   useEffect(() => {
     const getSteps = async () => {
       const videoSteps = await fetchVideoSteps(video.id);
-      setSteps(videoSteps);
+      // Conversão explícita para o tipo VideoStep[]
+      setSteps(videoSteps as VideoStep[]);
     };
     getSteps();
   }, [video.id]);

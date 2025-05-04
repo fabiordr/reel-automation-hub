@@ -61,5 +61,5 @@ export type VideoStep = {
   step_name: 'script' | 'voice' | 'image' | 'editing' | 'publishing' | string; // Adicionado string para compatibilidade
   status: 'pending' | 'in_progress' | 'completed' | 'failed' | string; // Adicionado string para compatibilidade
   updated_at: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, any> | any; // Adicionado 'any' para compatibilidade com Json do Supabase
 }
