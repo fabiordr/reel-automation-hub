@@ -59,7 +59,8 @@ export const useVideos = (topicId?: string) => {
       if (error) throw error;
       
       // Depois criamos as etapas para o vídeo
-      const steps: Partial<VideoStep>[] = [
+      // Corrigindo a tipagem e estrutura dos dados para a inserção
+      const stepsData = [
         { video_id: data.id, step_name: 'script', status: 'pending' },
         { video_id: data.id, step_name: 'voice', status: 'pending' },
         { video_id: data.id, step_name: 'image', status: 'pending' },
@@ -69,7 +70,7 @@ export const useVideos = (topicId?: string) => {
       
       const { error: stepsError } = await supabase
         .from("video_steps")
-        .insert(steps);
+        .insert(stepsData);
         
       if (stepsError) throw stepsError;
       

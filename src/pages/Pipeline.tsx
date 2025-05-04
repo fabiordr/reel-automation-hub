@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Play, CheckCircle2, AlertCircle, Loader2, RefreshCw, Eye, Plus } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVideos } from "@/hooks/use-videos";
 import { useTopics } from "@/hooks/use-topics";
-import { Video, VideoStep } from "@/types/supabase";
+import { Video, VideoStep, Topic } from "@/types/supabase";
 
 const PipelineVideoCard = ({ video, onRetry }: { 
   video: Video;

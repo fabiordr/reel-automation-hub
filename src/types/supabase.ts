@@ -20,7 +20,7 @@ export type Topic = {
   user_id: string;
   name: string;
   description: string | null;
-  status: 'active' | 'paused' | 'canceled';
+  status: 'active' | 'paused' | 'canceled' | string; // Adicionado string para compatibilidade
   created_at: string;
   updated_at: string;
 }
@@ -34,10 +34,10 @@ export type Video = {
   audio_url: string | null;
   image_url: string | null;
   video_url: string | null;
-  status: 'script' | 'voice' | 'image' | 'editing' | 'published' | 'failed';
+  status: 'script' | 'voice' | 'image' | 'editing' | 'published' | 'failed' | string; // Adicionado string para compatibilidade
   error_message: string | null;
-  published_platforms: string[];
-  views: Record<string, number>;
+  published_platforms: string[] | any;
+  views: Record<string, number> | any;
   cost: number;
   revenue: number;
   created_at: string;
@@ -58,8 +58,8 @@ export type UserSettings = {
 export type VideoStep = {
   id: string;
   video_id: string;
-  step_name: 'script' | 'voice' | 'image' | 'editing' | 'publishing';
-  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  step_name: 'script' | 'voice' | 'image' | 'editing' | 'publishing' | string; // Adicionado string para compatibilidade
+  status: 'pending' | 'in_progress' | 'completed' | 'failed' | string; // Adicionado string para compatibilidade
   updated_at: string;
   metadata: Record<string, any>;
 }
