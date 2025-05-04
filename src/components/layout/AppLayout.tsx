@@ -4,17 +4,24 @@ import { Navigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AppLayoutProps {
   children: ReactNode;
 }
 
 const AppLayout = ({ children }: AppLayoutProps) => {
-  // Check if user is logged in - This will be connected to Supabase later
-  // For now it's a placeholder that always returns true after login is implemented
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-
+  const { isLoggedIn, loading } = useAuth();
   const isMobile = useIsMobile();
+
+  // Mostrar carregamento ou redirecionar se não estiver logado
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-muted-foreground">Carregando...</p>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;

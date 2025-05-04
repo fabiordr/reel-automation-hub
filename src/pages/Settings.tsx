@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -7,23 +7,127 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/use-toast";
+import { useApiKeys } from "@/hooks/use-api-keys";
+import { useUserSettings } from "@/hooks/use-user-settings";
+import { Eye, EyeOff } from "lucide-react";
 
 const Settings = () => {
+  const { apiKeys, loading: loadingKeys, saveApiKey } = useApiKeys();
+  const { settings, loading: loadingSettings, updateSettings } = useUserSettings();
   const [isSaving, setIsSaving] = useState(false);
+  const [showApiKeys, setShowApiKeys] = useState<Record<string, boolean>>({});
 
-  const handleSaveSettings = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Estado para os valores dos inputs de API keys
+  const [apiKeyValues, setApiKeyValues] = useState<Record<string, string>>({
+    openai: '',
+    elevenlabs: '',
+    google: '',
+    replicate: '',
+    meta: '',
+    youtube: '',
+    tiktok: '',
+  });
+
+  // Estado para preferências do usuário
+  const [userPreferences, setUserPreferences] = useState({
+    preferred_tts: '',
+    preferred_image_generator: '',
+    preferred_video_generator: '',
+    automation_service: ''
+  });
+
+  // Preencher os campos quando os dados forem carregados
+  useEffect(() => {
+    if (apiKeys && apiKeys.length > 0) {
+      const keyMap: Record<string, string> = {};
+      apiKeys.forEach(key => {
+        keyMap[key.service] = key.api_key;
+      });
+      
+      setApiKeyValues(prev => ({
+        ...prev,
+        openai: keyMap.openai || '',
+        elevenlabs: keyMap.elevenlabs || '',
+        google: keyMap.google || '',
+        replicate: keyMap.replicate || '',
+        meta: keyMap.meta || '',
+        youtube: keyMap.youtube || '',
+        tiktok: keyMap.tiktok || '',
+      }));
+    }
+  }, [apiKeys]);
+
+  // Preencher as preferências quando as configurações forem carregadas
+  useEffect(() => {
+    if (settings) {
+      setUserPreferences({
+        preferred_tts: settings.preferred_tts || 'elevenlabs',
+        preferred_image_generator: settings.preferred_image_generator || 'replicate',
+        preferred_video_generator: settings.preferred_video_generator || 'ffmpeg',
+        automation_service: settings.automation_service || 'make'
+      });
+    }
+  }, [settings]);
+
+  const toggleShowKey = (service: string) => {
+    setShowApiKeys(prev => ({
+      ...prev,
+      [service]: !prev[service]
+    }));
+  };
+
+  const handleSaveApiKeys = async () => {
     setIsSaving(true);
     
-    // Simular salvamento no Supabase
-    setTimeout(() => {
+    try {
+      const promises = [];
+      
+      // Salvar apenas chaves não vazias
+      if (apiKeyValues.openai) {
+        promises.push(saveApiKey('openai', apiKeyValues.openai));
+      }
+      if (apiKeyValues.elevenlabs) {
+        promises.push(saveApiKey('elevenlabs', apiKeyValues.elevenlabs));
+      }
+      if (apiKeyValues.google) {
+        promises.push(saveApiKey('google', apiKeyValues.google));
+      }
+      if (apiKeyValues.replicate) {
+        promises.push(saveApiKey('replicate', apiKeyValues.replicate));
+      }
+      if (apiKeyValues.meta) {
+        promises.push(saveApiKey('meta', apiKeyValues.meta));
+      }
+      if (apiKeyValues.youtube) {
+        promises.push(saveApiKey('youtube', apiKeyValues.youtube));
+      }
+      if (apiKeyValues.tiktok) {
+        promises.push(saveApiKey('tiktok', apiKeyValues.tiktok));
+      }
+      
+      await Promise.all(promises);
+    } finally {
       setIsSaving(false);
-      toast({
-        title: "Configurações salvas",
-        description: "Suas alterações foram salvas com sucesso.",
-      });
-    }, 1000);
+    }
   };
+
+  const handleSavePreferences = async () => {
+    setIsSaving(true);
+    
+    try {
+      await updateSettings(userPreferences);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (loadingKeys || loadingSettings) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-muted-foreground">Carregando configurações...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -42,7 +146,7 @@ const Settings = () => {
         </TabsList>
 
         <TabsContent value="ai-tools">
-          <form onSubmit={handleSaveSettings}>
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveApiKeys(); }} className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
@@ -54,7 +158,24 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="openai-key">API Key</Label>
-                    <Input id="openai-key" type="password" placeholder="sk-..." />
+                    <div className="relative">
+                      <Input
+                        id="openai-key"
+                        type={showApiKeys.openai ? "text" : "password"}
+                        value={apiKeyValues.openai}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, openai: e.target.value }))}
+                        placeholder="sk-..."
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('openai')}
+                      >
+                        {showApiKeys.openai ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="openai-model">Modelo Padrão</Label>
@@ -88,7 +209,24 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="elevenlabs-key">API Key</Label>
-                    <Input id="elevenlabs-key" type="password" placeholder="..." />
+                    <div className="relative">
+                      <Input
+                        id="elevenlabs-key"
+                        type={showApiKeys.elevenlabs ? "text" : "password"}
+                        value={apiKeyValues.elevenlabs}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, elevenlabs: e.target.value }))}
+                        placeholder="..."
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('elevenlabs')}
+                      >
+                        {showApiKeys.elevenlabs ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="elevenlabs-voice">Voz Padrão</Label>
@@ -117,7 +255,24 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="google-key">API Key</Label>
-                    <Input id="google-key" type="password" placeholder="..." />
+                    <div className="relative">
+                      <Input
+                        id="google-key"
+                        type={showApiKeys.google ? "text" : "password"}
+                        value={apiKeyValues.google}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, google: e.target.value }))}
+                        placeholder="..."
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('google')}
+                      >
+                        {showApiKeys.google ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="google-voice">Voz Padrão</Label>
@@ -145,7 +300,24 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="replicate-key">API Key</Label>
-                    <Input id="replicate-key" type="password" placeholder="r8_..." />
+                    <div className="relative">
+                      <Input
+                        id="replicate-key"
+                        type={showApiKeys.replicate ? "text" : "password"}
+                        value={apiKeyValues.replicate}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, replicate: e.target.value }))}
+                        placeholder="r8_..."
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('replicate')}
+                      >
+                        {showApiKeys.replicate ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="replicate-model">Modelo Padrão</Label>
@@ -173,7 +345,7 @@ const Settings = () => {
         </TabsContent>
 
         <TabsContent value="social-media">
-          <form onSubmit={handleSaveSettings}>
+          <form onSubmit={(e) => { e.preventDefault(); handleSaveApiKeys(); }} className="space-y-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               <Card>
                 <CardHeader>
@@ -185,15 +357,33 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="meta-app-id">App ID</Label>
-                    <Input id="meta-app-id" placeholder="12345678901234" />
+                    <Input 
+                      id="meta-app-id" 
+                      placeholder="12345678901234" 
+                      value={apiKeyValues.meta || ''}
+                      onChange={(e) => setApiKeyValues(prev => ({ ...prev, meta: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="meta-app-secret">App Secret</Label>
-                    <Input id="meta-app-secret" type="password" placeholder="..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="meta-access-token">Access Token</Label>
-                    <Input id="meta-access-token" type="password" placeholder="..." />
+                    <div className="relative">
+                      <Input
+                        id="meta-app-secret"
+                        type={showApiKeys.meta ? "text" : "password"}
+                        placeholder="..."
+                        value={apiKeyValues.meta || ''}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, meta: e.target.value }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('meta')}
+                      >
+                        {showApiKeys.meta ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -208,15 +398,33 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="youtube-client-id">Client ID</Label>
-                    <Input id="youtube-client-id" placeholder="..." />
+                    <Input 
+                      id="youtube-client-id" 
+                      placeholder="..." 
+                      value={apiKeyValues.youtube || ''}
+                      onChange={(e) => setApiKeyValues(prev => ({ ...prev, youtube: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="youtube-client-secret">Client Secret</Label>
-                    <Input id="youtube-client-secret" type="password" placeholder="..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="youtube-refresh-token">Refresh Token</Label>
-                    <Input id="youtube-refresh-token" type="password" placeholder="..." />
+                    <div className="relative">
+                      <Input
+                        id="youtube-client-secret"
+                        type={showApiKeys.youtube ? "text" : "password"}
+                        placeholder="..."
+                        value={apiKeyValues.youtube || ''}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, youtube: e.target.value }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('youtube')}
+                      >
+                        {showApiKeys.youtube ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -231,15 +439,33 @@ const Settings = () => {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="tiktok-client-key">Client Key</Label>
-                    <Input id="tiktok-client-key" placeholder="..." />
+                    <Input 
+                      id="tiktok-client-key" 
+                      placeholder="..." 
+                      value={apiKeyValues.tiktok || ''}
+                      onChange={(e) => setApiKeyValues(prev => ({ ...prev, tiktok: e.target.value }))}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="tiktok-client-secret">Client Secret</Label>
-                    <Input id="tiktok-client-secret" type="password" placeholder="..." />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="tiktok-access-token">Access Token</Label>
-                    <Input id="tiktok-access-token" type="password" placeholder="..." />
+                    <div className="relative">
+                      <Input
+                        id="tiktok-client-secret"
+                        type={showApiKeys.tiktok ? "text" : "password"}
+                        placeholder="..."
+                        value={apiKeyValues.tiktok || ''}
+                        onChange={(e) => setApiKeyValues(prev => ({ ...prev, tiktok: e.target.value }))}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2"
+                        onClick={() => toggleShowKey('tiktok')}
+                      >
+                        {showApiKeys.tiktok ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -267,7 +493,10 @@ const Settings = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="preferred-tts">Text-to-Speech</Label>
-                    <Select defaultValue="elevenlabs">
+                    <Select 
+                      value={userPreferences.preferred_tts}
+                      onValueChange={(value) => setUserPreferences(prev => ({ ...prev, preferred_tts: value }))}
+                    >
                       <SelectTrigger id="preferred-tts">
                         <SelectValue placeholder="Selecionar ferramenta" />
                       </SelectTrigger>
@@ -280,7 +509,10 @@ const Settings = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="preferred-image">Geração de Imagem</Label>
-                    <Select defaultValue="replicate">
+                    <Select 
+                      value={userPreferences.preferred_image_generator}
+                      onValueChange={(value) => setUserPreferences(prev => ({ ...prev, preferred_image_generator: value }))}
+                    >
                       <SelectTrigger id="preferred-image">
                         <SelectValue placeholder="Selecionar ferramenta" />
                       </SelectTrigger>
@@ -293,7 +525,10 @@ const Settings = () => {
 
                   <div className="space-y-2">
                     <Label htmlFor="preferred-video">Geração de Vídeo</Label>
-                    <Select defaultValue="ffmpeg">
+                    <Select 
+                      value={userPreferences.preferred_video_generator}
+                      onValueChange={(value) => setUserPreferences(prev => ({ ...prev, preferred_video_generator: value }))}
+                    >
                       <SelectTrigger id="preferred-video">
                         <SelectValue placeholder="Selecionar ferramenta" />
                       </SelectTrigger>
@@ -311,7 +546,10 @@ const Settings = () => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="automation-service">Serviço de Automação</Label>
-                    <Select defaultValue="make">
+                    <Select 
+                      value={userPreferences.automation_service}
+                      onValueChange={(value) => setUserPreferences(prev => ({ ...prev, automation_service: value }))}
+                    >
                       <SelectTrigger id="automation-service">
                         <SelectValue placeholder="Selecionar serviço" />
                       </SelectTrigger>
@@ -327,7 +565,7 @@ const Settings = () => {
             </CardContent>
           </Card>
           <div className="mt-8 flex justify-end">
-            <Button onClick={handleSaveSettings} disabled={isSaving}>
+            <Button onClick={handleSavePreferences} disabled={isSaving}>
               {isSaving ? "Salvando..." : "Salvar Preferências"}
             </Button>
           </div>

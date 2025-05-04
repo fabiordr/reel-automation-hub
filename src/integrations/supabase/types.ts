@@ -9,7 +9,217 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      api_keys: {
+        Row: {
+          api_key: string
+          created_at: string
+          id: string
+          service: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          api_key: string
+          created_at?: string
+          id?: string
+          service: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          api_key?: string
+          created_at?: string
+          id?: string
+          service?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      topics: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          automation_service: string | null
+          created_at: string
+          id: string
+          preferred_image_generator: string | null
+          preferred_tts: string | null
+          preferred_video_generator: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          automation_service?: string | null
+          created_at?: string
+          id?: string
+          preferred_image_generator?: string | null
+          preferred_tts?: string | null
+          preferred_video_generator?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          automation_service?: string | null
+          created_at?: string
+          id?: string
+          preferred_image_generator?: string | null
+          preferred_tts?: string | null
+          preferred_video_generator?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_steps: {
+        Row: {
+          id: string
+          metadata: Json | null
+          status: string
+          step_name: string
+          updated_at: string
+          video_id: string
+        }
+        Insert: {
+          id?: string
+          metadata?: Json | null
+          status?: string
+          step_name: string
+          updated_at?: string
+          video_id: string
+        }
+        Update: {
+          id?: string
+          metadata?: Json | null
+          status?: string
+          step_name?: string
+          updated_at?: string
+          video_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "video_steps_video_id_fkey"
+            columns: ["video_id"]
+            isOneToOne: false
+            referencedRelation: "videos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          audio_url: string | null
+          cost: number | null
+          created_at: string
+          error_message: string | null
+          id: string
+          image_url: string | null
+          published_platforms: Json | null
+          revenue: number | null
+          script: string | null
+          status: string
+          title: string
+          topic_id: string
+          updated_at: string
+          user_id: string
+          video_url: string | null
+          views: Json | null
+        }
+        Insert: {
+          audio_url?: string | null
+          cost?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          published_platforms?: Json | null
+          revenue?: number | null
+          script?: string | null
+          status?: string
+          title: string
+          topic_id: string
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+          views?: Json | null
+        }
+        Update: {
+          audio_url?: string | null
+          cost?: number | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          image_url?: string | null
+          published_platforms?: Json | null
+          revenue?: number | null
+          script?: string | null
+          status?: string
+          title?: string
+          topic_id?: string
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+          views?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

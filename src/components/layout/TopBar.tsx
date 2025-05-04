@@ -10,8 +10,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/contexts/AuthContext";
 
 const TopBar = () => {
+  const { signOut, user } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
+
   return (
     <div className="h-16 border-b border-border flex items-center justify-between px-6">
       <div className="text-xl font-semibold"></div>
@@ -36,14 +43,14 @@ const TopBar = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>Minha conta</DropdownMenuLabel>
+            <DropdownMenuLabel className="font-normal text-xs text-muted-foreground">
+              {user?.email}
+            </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem>Perfil</DropdownMenuItem>
             <DropdownMenuItem>Preferências</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => {
-              localStorage.removeItem("isLoggedIn");
-              window.location.href = "/login";
-            }}>
+            <DropdownMenuItem onClick={handleLogout}>
               Sair
             </DropdownMenuItem>
           </DropdownMenuContent>

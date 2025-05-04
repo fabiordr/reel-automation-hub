@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PlusCircle, Edit, Trash2, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,58 +8,145 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { toast } from "@/components/ui/use-toast";
+import { useTopics } from "@/hooks/use-topics";
+import { useVideos } from "@/hooks/use-videos";
+import { Topic } from "@/types/supabase";
+
+const TopicCard = ({ topic, onToggleStatus, onEdit, onDelete }: {
+  topic: Topic;
+  onToggleStatus: (id: string, status: string) => void;
+  onEdit: (topic: Topic) => void;
+  onDelete: (id: string) => void;
+}) => {
+  const { videos, loading } = useVideos(topic.id);
+  
+  // Calcular métricas
+  const videoCount = videos.length;
+  const totalCost = videos.reduce((sum, video) => sum + (video.cost || 0), 0);
+  const totalRevenue = videos.reduce((sum, video) => sum + (video.revenue || 0), 0);
+  
+  const getROI = () => {
+    if (totalCost === 0) return "0";
+    return ((totalRevenue - totalCost) / totalCost * 100).toFixed(0);
+  };
+
+  return (
+    <Card>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>{topic.name}</CardTitle>
+            <CardDescription className="mt-1">
+              {topic.description}
+            </CardDescription>
+          </div>
+          <Badge variant={topic.status === "active" ? "default" : "secondary"}>
+            {topic.status === "active" ? "Ativo" : "Pausado"}
+          </Badge>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Vídeos:</span>
+            <span>{videoCount}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Custo Total:</span>
+            <span>R$ {totalCost.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Receita:</span>
+            <span>R$ {totalRevenue.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between pt-2 border-t border-border">
+            <span className="font-medium">ROI:</span>
+            <span className="font-bold text-primary">
+              {getROI()}%
+            </span>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <div className="flex space-x-2">
+          <Button size="sm" variant="ghost" onClick={() => onEdit(topic)}>
+            <Edit className="w-4 h-4 mr-1" />
+            Editar
+          </Button>
+          <Button size="sm" variant="ghost" className="text-destructive" onClick={() => onDelete(topic.id)}>
+            <Trash2 className="w-4 h-4 mr-1" />
+            Excluir
+          </Button>
+        </div>
+        <Button size="sm" variant="outline" onClick={() => onToggleStatus(topic.id, topic.status)}>
+          {topic.status === "active" ? (
+            <>
+              <Pause className="w-4 h-4 mr-1" />
+              Pausar
+            </>
+          ) : (
+            <>
+              <Play className="w-4 h-4 mr-1" />
+              Ativar
+            </>
+          )}
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+};
 
 const Topics = () => {
-  const [newTopicOpen, setNewTopicOpen] = useState(false);
+  const { topics, loading, createTopic, updateTopic, deleteTopic, toggleTopicStatus } = useTopics();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingTopic, setEditingTopic] = useState<Topic | null>(null);
   const [topicName, setTopicName] = useState("");
   const [topicDescription, setTopicDescription] = useState("");
 
-  // Simular dados de tópicos
-  const topics = [
-    {
-      id: 1,
-      name: "Dicas de Produtividade",
-      description: "Vídeos curtos com dicas rápidas para melhorar a produtividade.",
-      status: "active",
-      videoCount: 8,
-      cost: 175,
-      revenue: 530,
-    },
-    {
-      id: 2,
-      name: "Receitas Simples",
-      description: "Receitas rápidas com menos de 5 ingredientes.",
-      status: "paused",
-      videoCount: 12,
-      cost: 240,
-      revenue: 890,
-    },
-    {
-      id: 3,
-      name: "Curiosidades Científicas",
-      description: "Fatos interessantes sobre ciência explicados de forma simples.",
-      status: "active",
-      videoCount: 5,
-      cost: 120,
-      revenue: 310,
-    },
-  ];
+  // Reset do formulário quando abrir ou fechar o diálogo
+  useEffect(() => {
+    if (!dialogOpen) {
+      setEditingTopic(null);
+      setTopicName("");
+      setTopicDescription("");
+    }
+  }, [dialogOpen]);
 
-  const handleCreateTopic = () => {
-    // Simulando criação de tópico no Supabase
-    toast({
-      title: "Tópico criado com sucesso",
-      description: `O tópico "${topicName}" foi criado.`,
-    });
-    setNewTopicOpen(false);
-    setTopicName("");
-    setTopicDescription("");
+  // Preencher o formulário se estiver editando
+  useEffect(() => {
+    if (editingTopic) {
+      setTopicName(editingTopic.name);
+      setTopicDescription(editingTopic.description || "");
+      setDialogOpen(true);
+    }
+  }, [editingTopic]);
+
+  const handleCreateOrUpdateTopic = async () => {
+    if (editingTopic) {
+      await updateTopic(editingTopic.id, {
+        name: topicName,
+        description: topicDescription
+      });
+    } else {
+      await createTopic(topicName, topicDescription);
+    }
+    setDialogOpen(false);
   };
 
-  const getROI = (revenue: number, cost: number) => {
-    return ((revenue - cost) / cost * 100).toFixed(0);
+  const handleDeleteTopic = async (id: string) => {
+    const confirmed = window.confirm("Tem certeza que deseja excluir este tópico? Todos os vídeos associados também serão excluídos.");
+    if (confirmed) {
+      await deleteTopic(id);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p className="text-muted-foreground">Carregando tópicos...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">
@@ -70,7 +157,7 @@ const Topics = () => {
             Crie e gerencie tópicos para seus vídeos automatizados.
           </p>
         </div>
-        <Dialog open={newTopicOpen} onOpenChange={setNewTopicOpen}>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className="flex items-center">
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -79,9 +166,11 @@ const Topics = () => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Criar Novo Tópico</DialogTitle>
+              <DialogTitle>{editingTopic ? "Editar Tópico" : "Criar Novo Tópico"}</DialogTitle>
               <DialogDescription>
-                Defina um nome e descrição para seu novo tópico de conteúdo.
+                {editingTopic 
+                  ? "Atualize as informações do tópico selecionado."
+                  : "Defina um nome e descrição para seu novo tópico de conteúdo."}
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
@@ -106,79 +195,36 @@ const Topics = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setNewTopicOpen(false)}>Cancelar</Button>
-              <Button onClick={handleCreateTopic}>Criar Tópico</Button>
+              <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleCreateOrUpdateTopic}>
+                {editingTopic ? "Salvar Alterações" : "Criar Tópico"}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {topics.map((topic) => (
-          <Card key={topic.id}>
-            <CardHeader className="pb-2">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle>{topic.name}</CardTitle>
-                  <CardDescription className="mt-1">
-                    {topic.description}
-                  </CardDescription>
-                </div>
-                <Badge variant={topic.status === "active" ? "default" : "secondary"}>
-                  {topic.status === "active" ? "Ativo" : "Pausado"}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Vídeos:</span>
-                  <span>{topic.videoCount}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Custo Total:</span>
-                  <span>R$ {topic.cost}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Receita:</span>
-                  <span>R$ {topic.revenue}</span>
-                </div>
-                <div className="flex justify-between pt-2 border-t border-border">
-                  <span className="font-medium">ROI:</span>
-                  <span className="font-bold text-primary">
-                    {getROI(topic.revenue, topic.cost)}%
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <div className="flex space-x-2">
-                <Button size="sm" variant="ghost">
-                  <Edit className="w-4 h-4 mr-1" />
-                  Editar
-                </Button>
-                <Button size="sm" variant="ghost" className="text-destructive">
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Excluir
-                </Button>
-              </div>
-              <Button size="sm" variant="outline">
-                {topic.status === "active" ? (
-                  <>
-                    <Pause className="w-4 h-4 mr-1" />
-                    Pausar
-                  </>
-                ) : (
-                  <>
-                    <Play className="w-4 h-4 mr-1" />
-                    Ativar
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
+      {topics.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-12 border border-dashed border-border rounded-lg">
+          <p className="text-muted-foreground mb-4">Você ainda não criou nenhum tópico.</p>
+          <Button onClick={() => setDialogOpen(true)}>
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Criar Seu Primeiro Tópico
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {topics.map((topic) => (
+            <TopicCard
+              key={topic.id}
+              topic={topic}
+              onToggleStatus={toggleTopicStatus}
+              onEdit={setEditingTopic}
+              onDelete={handleDeleteTopic}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

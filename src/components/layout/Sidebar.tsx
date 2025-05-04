@@ -13,10 +13,12 @@ import {
   ChevronRight,
   LogOut
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { signOut } = useAuth();
 
   const navItems = [
     {
@@ -47,8 +49,7 @@ const Sidebar = () => {
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    window.location.href = "/login";
+    signOut();
   };
 
   return (
